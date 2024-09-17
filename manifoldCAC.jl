@@ -38,3 +38,34 @@ function basic_rule3!(du, u, params, t)
     du[(2*N^2+1):end] = df_dt
   
 end
+
+function run_ODE(N,params,tspan,M₀,cost_fnc_X,H0)
+
+    e = ones(N,N)
+    f = ones(N)
+    P0 = rand(M₀) # This is P(t=0)
+    u0 = [vec(P0);vec(e);f]
+    
+    # 3) run
+    
+    prob = ODEProblem(basic_rule3!, u0, tspan, params)
+    #sol = solve(prob, Vern9(), reltol=1e-9, abstol=1e-12);
+    tCPU = @elapsed sol = solve(prob, Vern9(), reltol=1e-6, abstol=1e-6);
+    
+    # 4) collect results
+    H = [ cost_fnc_X(reshape(x_t[1:N^2], N, N), false) for x_t in sol.u]
+    H_perm = [ cost_fnc_X(reshape(x_t[1:N^2], N, N), true) for x_t in sol.u]
+    
+    iopt = findfirst(x -> x == H0, H_perm)
+    
+    if isnothing(iopt)
+        isolved = false
+        t0 = steps
+    else
+        isolved = true
+        t0 = sol.t[iopt]
+    end
+
+    return isolved, t0, tCPU, H, H_perm, sol
+
+end

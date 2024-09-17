@@ -86,6 +86,34 @@ function generate_permutation_matrices(n)
     return matrices
 end
 
+function is_permutation_matrix(X)
+    # Check if the matrix is square
+    if size(X, 1) != size(X, 2)
+        return false
+    end
+    
+    # Check if the matrix contains only 0s and 1s
+    if any(x -> !(x in (0, 1)), X)
+        return false
+    end
+    
+    # Check if each row contains exactly one 1
+    for row in eachrow(X)
+        if sum(row) != 1
+            return false
+        end
+    end
+    
+    # Check if each column contains exactly one 1
+    for col in eachcol(X)
+        if sum(col) != 1
+            return false
+        end
+    end
+    
+    return true
+end
+
 function brute_force(N,D)
 
     directed = false  # Set to false for undirected
@@ -147,5 +175,32 @@ function load_TSP_instance(N,i)
     end
 
     return matrix, scalar
+
+end
+
+function initialize_solver(N,D)
+
+    T = cycle_graph_adjacency_matrix(N, false);
+
+    b = 2/N
+    
+    function cost_fnc_P(P)
+        return tr(transpose(D)*transpose(P)*T*P)
+    end
+        
+    function cost_fnc_X(X, checkPerm)
+        P = (sign.(2.0 .* (X .+ b) .- 1) .+ 1)/2 #but is not necessarily a permutation matrix
+        if !checkPerm
+            return tr(transpose(D)*transpose(P)*T*P)
+        else
+            if is_permutation_matrix(P)
+                return tr(transpose(D)*transpose(P)*T*P)
+            else
+                return NaN
+            end
+        end
+    end
+
+    return cost_fnc_P, cost_fnc_X, T, b
 
 end
